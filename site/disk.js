@@ -27,20 +27,27 @@ async function removeDisk(name){const dir=await root();await dir.removeEntry(nam
 async function saveDisk(name,progress){const handle=await diskFile(name),file=await handle.getFile();if(window.showSaveFilePicker){const dest=await window.showSaveFilePicker({suggestedName:name,types:[{description:'Virtual hard disk',accept:{'application/octet-stream':['.vhd']}}]});const w=await dest.createWritable();try{let offset=0;for(let offset=0;offset<file.size;offset+=1048576){const chunk=new Uint8Array(await file.slice(offset,Math.min(offset+1048576,file.size)).arrayBuffer());await w.write(chunk);progress('Writing '+Math.round((offset+chunk.length)/file.size*100)+'%')}await w.close()}catch(e){await w.abort();throw e}return}const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 async function attachDisk(name){const h=await diskFile(name);const info=await inspect(h);return {name,...info,read:async(offset,length)=>{if(offset<0||length<0||offset+length>info.bytes)throw Error('Out of range');return new Uint8Array(await (await h.getFile()).slice(offset,offset+length).arrayBuffer())},write:async(offset,data)=>{if(offset<0||offset+data.length>info.bytes)throw Error('Out of range');await writeAt(h,offset,data)},flush:async()=>{},close:async()=>{}}}
 
-// External disk handles are accessed on demand without copying the whole image.
-// The web File System Access API does not guarantee in-place random writes.
+// External disk file backend. Read/write access is permission-gated.
+// Browser createWritable() stages changes until close; this is NOT native in-place I/O.
 async function openExternalDisk(){
- if(!window.showOpenFilePicker)throw Error('Direct device-file access requires a supported desktop Chromium browser. On iPhone, Safari cannot mount an arbitrary local VHD directly.');
+ if(!window.showOpenFilePicker)throw Error('Live device-file handles require a supported desktop browser. Safari on iPhone cannot grant direct writable access to Files-app documents.');
  const [handle]=await showOpenFilePicker({multiple:false,types:[{description:'Virtual disk images',accept:{'application/octet-stream':['.vhd','.vhdx']}}]});
  const file=await handle.getFile();
- const header=new Uint8Array(await file.slice(0,8).arrayBuffer());
- if(new TextDecoder().decode(header)==='vhdxfile')throw Error('VHDX was selected, but the VHDX block decoder is not implemented yet.');
- const info=await inspect(handle);
- let closed=false;
- return {name:handle.name,external:true,readOnly:true,...info,
-  read:async(offset,length)=>{if(closed)throw Error('Disk is unmounted');if(!Number.isSafeInteger(offset)||!Number.isSafeInteger(length)||offset<0||length<0||offset+length>info.bytes)throw Error('Read outside disk');return new Uint8Array(await (await handle.getFile()).slice(offset,offset+length).arrayBuffer())},
-  write:async()=>{throw Error('External file mounted read-only: browser APIs do not guarantee in-place sector writes. No copy was created.')},
-  flush:async()=>{},close:async()=>{closed=true}
+ const header=new TextDecoder().decode(new Uint8Array(await file.slice(0,8).arrayBuffer()));
+ const isVHDX=header==='vhdxfile';
+ const info=isVHDX?{bytes:file.size,mib:Math.round(file.size/1048576*100)/100,format:'VHDX (raw container bytes)'}:{...await inspect(handle),format:'Fixed VHD'};
+ const permission=await handle.requestPermission({mode:'readwrite'});
+ const writable=permission==='granted';
+ let closed=false,stream=null;
+ let changes=[];let queue=Promise.resolve();
+ const serial=fn=>{const p=queue.then(fn);queue=p.catch(()=>{});return p};
+ const check=(offset,length)=>{if(closed)throw Error('Disk is unmounted');if(!Number.isSafeInteger(offset)||!Number.isSafeInteger(length)||offset<0||length<0||offset+length>file.size)throw Error('Read/write outside disk image')};
+ async function commit(){if(stream){await stream.close();stream=null;changes=[]}}
+ return {name:handle.name,external:true,readOnly:!writable,stagedWrites:writable,...info,
+  read:(offset,length)=>serial(async()=>{check(offset,length);const source=await handle.getFile();const data=new Uint8Array(await source.slice(offset,offset+length).arrayBuffer());for(const ch of changes){const start=Math.max(offset,ch.offset),end=Math.min(offset+length,ch.offset+ch.data.length);if(end>start)data.set(ch.data.subarray(start-ch.offset,end-ch.offset),start-offset)}return data}),
+  write:(offset,data)=>serial(async()=>{if(!writable)throw Error('Read-only permission');if(!(data instanceof Uint8Array))throw Error('Write data must be Uint8Array');check(offset,data.length);if(!stream)stream=await handle.createWritable({keepExistingData:true});const copy=data.slice();await stream.write({type:'write',position:offset,data:copy});changes.push({offset,data:copy});if(changes.length>128)await commit()}),
+  flush:()=>serial(commit),
+  close:()=>serial(async()=>{if(closed)return;await commit();closed=true})
  };
 }
 window.EXEDisk={openExternalDisk,createDisk,listDisks,removeDisk,saveDisk,attachDisk,inspect};
