@@ -26,4 +26,21 @@ async function diskFile(name){const dir=await root();return dir.getFileHandle(na
 async function removeDisk(name){const dir=await root();await dir.removeEntry(name)}
 async function saveDisk(name,progress){const handle=await diskFile(name),file=await handle.getFile();if(window.showSaveFilePicker){const dest=await window.showSaveFilePicker({suggestedName:name,types:[{description:'Virtual hard disk',accept:{'application/octet-stream':['.vhd']}}]});const w=await dest.createWritable();try{let offset=0;for(let offset=0;offset<file.size;offset+=1048576){const chunk=new Uint8Array(await file.slice(offset,Math.min(offset+1048576,file.size)).arrayBuffer());await w.write(chunk);progress('Writing '+Math.round((offset+chunk.length)/file.size*100)+'%')}await w.close()}catch(e){await w.abort();throw e}return}const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 async function attachDisk(name){const h=await diskFile(name);const info=await inspect(h);return {name,...info,read:async(offset,length)=>{if(offset<0||length<0||offset+length>info.bytes)throw Error('Out of range');return new Uint8Array(await (await h.getFile()).slice(offset,offset+length).arrayBuffer())},write:async(offset,data)=>{if(offset<0||offset+data.length>info.bytes)throw Error('Out of range');await writeAt(h,offset,data)},flush:async()=>{},close:async()=>{}}}
-window.EXEDisk={createDisk,listDisks,removeDisk,saveDisk,attachDisk,inspect};
+
+// External disk handles are accessed on demand without copying the whole image.
+// The web File System Access API does not guarantee in-place random writes.
+async function openExternalDisk(){
+ if(!window.showOpenFilePicker)throw Error('Direct device-file access requires a supported desktop Chromium browser. On iPhone, Safari cannot mount an arbitrary local VHD directly.');
+ const [handle]=await showOpenFilePicker({multiple:false,types:[{description:'Virtual disk images',accept:{'application/octet-stream':['.vhd','.vhdx']}}]});
+ const file=await handle.getFile();
+ const header=new Uint8Array(await file.slice(0,8).arrayBuffer());
+ if(new TextDecoder().decode(header)==='vhdxfile')throw Error('VHDX was selected, but the VHDX block decoder is not implemented yet.');
+ const info=await inspect(handle);
+ let closed=false;
+ return {name:handle.name,external:true,readOnly:true,...info,
+  read:async(offset,length)=>{if(closed)throw Error('Disk is unmounted');if(!Number.isSafeInteger(offset)||!Number.isSafeInteger(length)||offset<0||length<0||offset+length>info.bytes)throw Error('Read outside disk');return new Uint8Array(await (await handle.getFile()).slice(offset,offset+length).arrayBuffer())},
+  write:async()=>{throw Error('External file mounted read-only: browser APIs do not guarantee in-place sector writes. No copy was created.')},
+  flush:async()=>{},close:async()=>{closed=true}
+ };
+}
+window.EXEDisk={openExternalDisk,createDisk,listDisks,removeDisk,saveDisk,attachDisk,inspect};
