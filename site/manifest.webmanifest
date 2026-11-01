@@ -1,0 +1,11 @@
+{
+  "name": "EXE Deck",
+  "short_name": "EXE Deck",
+  "description": "Browser-local emulator and controller shell",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": []
+}
