@@ -1,20 +1,23 @@
-# EXE Deck Linux gaming runtime (container prototype)
+# EXE Deck graphical Linux runtime
 
-This folder defines a reproducible **Ubuntu 24.04 Linux container image** with Wine (32/64-bit), Winetricks, Vulkan loader, Mesa userspace, and troubleshooting utilities. It is **not** a bootable ISO, persistent VM image, or working browser-based gaming PC. The container does **not** include Steam or Proton; these require separate distribution/licensing and installation decisions. DXVK/VKD3D-Proton are not bundled. Do not advertise them as installed.
+Ubuntu 24.04 container with Wine (32/64-bit), Winetricks, Mesa/Vulkan userspace, Xvfb, x11vnc, and noVNC. This is **not a bootable VM image**, hardware GPU passthrough, or a security boundary.
 
-## Build
+## Start a local browser-accessible graphical Linux session
 
-On a Linux machine with Docker installed:
+Install Docker Engine and Compose on a Linux host. From the repository root:
 
 ```bash
-docker build -t exe-deck-gaming:local gaming-os
-docker run --rm exe-deck-gaming:local wine --version
+docker compose -f gaming-os/compose.yaml up --build
 ```
 
-The build needs internet and compatible Ubuntu repositories. Package availability and successful build are not verified here.
+Open **http://127.0.0.1:6080/vnc.html** on the same host. The VNC endpoint has **no authentication** and is bound to the host loopback interface. Never publish this port publicly. The virtual display is normally software-rendered; GPU acceleration is not configured.
 
-## Security and hardware
+A persistent named volume stores the Wine prefix and home directory. Compose defaults to 8 GiB RAM, four CPUs, no added Linux capabilities, a read-only root filesystem, and an unprivileged container user. These measures do **not** make Docker safe for running untrusted binaries.
 
-Docker containers are not an adequate hostile-EXE security boundary by themselves. **Never** expose an endpoint that runs arbitrary uploaded programs with host privileges. Use a properly isolated disposable VM and a dedicated unprivileged user, quotas, network policies, and disk limits. Native Vulkan acceleration needs compatible host GPU drivers and deliberately configured device access; neither is enabled here. A headless container cannot display games without a separately configured graphical server or streaming stack.
+To launch a trusted Windows program after copying it into the container's home volume:
 
-On iPhone, native execution must happen on a remote GPU host and stream to the browser. GitHub Pages cannot host the runtime or stream a remote session by itself.
+```bash
+docker compose -f gaming-os/compose.yaml exec gaming exe-deck-run-game /home/gamer/games/trusted.exe
+```
+
+Steam and Proton are **not** installed. They require separate authorized installation, Steam sign-in, and Proton compatibility-tool management. DXVK and VKD3D-Proton are also not installed or configured. This container does not connect to the GitHub Pages UI or support iPhone remote access. Audio, gamepad, secure remote streaming, GPU passthrough, and independent per-tab VMs remain outstanding.
