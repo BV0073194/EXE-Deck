@@ -38,7 +38,7 @@ def classify(filename, header):
         if len(header) < 64 or header[:2] != b"MZ":
             return None, "PE DOS header missing"
         offset = int.from_bytes(header[0x3c:0x40], "little")
-        if offset > len(header)-4 or header[offset:offset+4] != b"PE\\0\\0":
+        if offset > len(header)-4 or header[offset:offset+4] != bytes((80, 69, 0, 0)):
             return None, "PE signature missing"
         return "wine", "Windows PE executable"
     if suffix in (".bat", ".cmd"):
