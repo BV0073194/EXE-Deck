@@ -13,6 +13,7 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from runners import inventory, recommend
+from memory import host_memory_mib, plan_memory
 from urllib.parse import urlsplit
 
 MAX_BODY = 4096
@@ -54,6 +55,14 @@ class Handler(BaseHTTPRequestHandler):
         if not self.authorized():
             return self.respond(401, {"error": "Unauthorized"})
         path = urlsplit(self.path).path
+        if method == "GET" and path == "/v1/memory":
+            return self.respond(200, host_memory_mib())
+        if method == "POST" and path == "/v1/memory/plan":
+            try:
+                body = self.request_json()
+                return self.respond(200, plan_memory(body.get("memoryMiB")))
+            except (ValueError, AttributeError) as e:
+                return self.respond(400, {"error": str(e)})
         if method == "GET" and path == "/v1/runners":
             return self.respond(200, inventory())
         if method == "POST" and path == "/v1/recommend":
