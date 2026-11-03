@@ -21,6 +21,21 @@ class ConfigurationTests(unittest.TestCase):
         compose = (ROOT / "compose.yaml").read_text()
         self.assertIn('127.0.0.1:6080:6080', compose)
 
+    def test_segmented_networks(self):
+        overlay = (ROOT / "compose.isolated.yaml").read_text()
+        self.assertIn("session_private:", overlay)
+        self.assertIn("internal: true", overlay)
+        self.assertIn("auth_frontend:", overlay)
+        self.assertIn("networks: !override", overlay)
+        self.assertIn("      - session_private", overlay)
+
+    def test_single_owner_preflight(self):
+        script = (ROOT / "secure-start.sh").read_text()
+        self.assertIn("EXE_DECK_GITHUB_ALLOWED_USERS", script)
+        self.assertIn("Only one GitHub username", script)
+        self.assertIn("docker compose", script)
+        self.assertIn("compose.isolated.yaml", script)
+
     def test_no_privileged_container(self):
         compose = (ROOT / "compose.yaml").read_text()
         self.assertIn("no-new-privileges:true", compose)
