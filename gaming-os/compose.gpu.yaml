@@ -1,0 +1,13 @@
+# OPTIONAL Linux /dev/dri rendering support. Host must have working Mesa/DRM drivers.
+# This does not provide NVIDIA passthrough, Vulkan-to-browser translation,
+# WebRTC streaming, or VM-grade security isolation.
+services:
+  gaming:
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "${EXE_DECK_RENDER_GID:?Set host render group numeric GID}"
+      - "${EXE_DECK_VIDEO_GID:?Set host video group numeric GID}"
+    environment:
+      LIBGL_ALWAYS_SOFTWARE: "0"
+      MESA_LOADER_DRIVER_OVERRIDE: "${EXE_DECK_MESA_DRIVER:-}"
