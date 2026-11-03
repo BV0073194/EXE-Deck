@@ -9,13 +9,13 @@ let vm=null;
 let loading=null;
 let starting=false;
 function loadScript(url){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=()=>reject(Error('Failed to load emulator runtime'));document.head.append(s)})}
-async function load(){if(typeof window.V86==='function')return window.V86;if(!loading)loading=loadScript(BASE+'build/libv86.js').then(()=>{if(typeof window.V86!=='function')throw Error('Emulator script loaded without V86 constructor');return window.V86});return loading}
+async function load(){if(typeof window.V86==='function')return window.V86;if(!loading)loading=loadScript(BASE+'build/libv86.js').then(()=>{if(typeof window.V86!=='function')throw Error('Emulator script loaded without V86 constructor');return window.V86}).catch(e=>{loading=null;throw e});return loading}
 async function boot({iso,screen,onStatus=()=>{},memoryMiB=128}){
  if(vm||starting)throw Error('Stop the running VM before booting another');
- starting=true;
  if(iso!==undefined&&(!(iso instanceof File)||!iso.size))throw Error('Select a valid bootable ISO file');
  if(!Number.isInteger(memoryMiB)||memoryMiB<32||memoryMiB>512)throw Error('Memory must be 32–512 MiB');
  if(!screen)throw Error('Missing guest display');
+ starting=true;
  onStatus('Loading x86 WebAssembly emulator…');
  let V86;
  try{V86=await load()}catch(e){starting=false;throw e}
@@ -27,6 +27,7 @@ async function boot({iso,screen,onStatus=()=>{},memoryMiB=128}){
  vm=new V86({wasm_path:BASE+'build/v86.wasm',memory_size:memoryMiB*1048576,vga_memory_size:8*1048576,screen_container:screen,bios:{url:BASE+'bios/seabios.bin'},vga_bios:{url:BASE+'bios/vgabios.bin'},cdrom:iso?{buffer:iso}:{url:DEFAULT_LINUX},network_relay_url:undefined,autostart:true});
  vm.add_listener('emulator-ready',()=>onStatus('Virtual PC ready; guest boot is controlled by the selected ISO'));
  vm.add_listener('emulator-started',()=>onStatus('Virtual PC running · '+(iso?.name||'default Linux demo image')));
+ vm.add_listener('emulator-stopped',()=>onStatus('Virtual PC stopped'));
  starting=false;return vm;
  }catch(e){starting=false;vm=null;throw e}
 }
