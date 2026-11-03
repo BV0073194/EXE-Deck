@@ -16,6 +16,10 @@ The site does **not create or persist new VHD/VHDX images in OPFS**. Legacy OPFS
 
 iOS Safari and many other browsers cannot provide direct persistent writable file handles. The interface reports this limitation instead of silently importing disks.
 
+## Experimental WebAssembly PC runner
+
+The **WebAssembly PC runner** uses v86 loaded on demand from jsDelivr (v86 0.5.462). Select a bootable x86 ISO to start an emulated PC in the current tab; pause, resume and stop controls are available. The ISO is provided by the user and is not saved to browser storage. The runtime and BIOS are fetched over the network when first started, so offline boot is not guaranteed. This is an x86 VM boot integration, **not** a preinstalled Linux/Wine/Proton environment. The device VHD/VHDX is not yet connected to the VM. Emulator boot has not been verified on a physical device. The v86 engine is not suitable for modern Windows 10/11 DirectX gaming. See https://github.com/copy/v86 for emulator license and upstream documentation.
+
 ## Missing runtime components
 
 No Windows 10/11 guest, Windows installer execution, MSI service, Wine API compatibility, DirectX/Vulkan translation, GPU acceleration, game-ready bootstrapper, guest filesystem driver, or VHDX sector driver is included. A full gaming runtime requires substantial separate development and legally sourced OS/runtime components. A browser cannot guarantee compatibility with arbitrary Windows games, drivers or anti-cheat.
