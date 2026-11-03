@@ -1,0 +1,39 @@
+# Compose overlay for GitHub OAuth protection of the remote desktop.
+# Use with compose.yaml and compose.remote.yaml; never expose gaming:6080 publicly.
+services:
+  gateway:
+    environment:
+      EXE_DECK_USER: unused
+      EXE_DECK_PASSWORD_HASH: unused
+  oauth:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.9.0
+    restart: unless-stopped
+    depends_on:
+      - gaming
+    expose:
+      - "4180"
+    environment:
+      OAUTH2_PROXY_PROVIDER: github
+      OAUTH2_PROXY_CLIENT_ID: ${EXE_DECK_GITHUB_CLIENT_ID:?GitHub OAuth client ID required}
+      OAUTH2_PROXY_CLIENT_SECRET: ${EXE_DECK_GITHUB_CLIENT_SECRET:?GitHub OAuth client secret required}
+      OAUTH2_PROXY_COOKIE_SECRET: ${EXE_DECK_COOKIE_SECRET:?Generate a random cookie secret}
+      OAUTH2_PROXY_REDIRECT_URL: https://${EXE_DECK_DOMAIN:?Domain required}/oauth2/callback
+      OAUTH2_PROXY_UPSTREAMS: http://gaming:6080/
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_GITHUB_USER: ${EXE_DECK_GITHUB_ALLOWED_USERS:?Set authorized GitHub usernames}
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_HTTPONLY: "true"
+      OAUTH2_PROXY_COOKIE_SAMESITE: lax
+      OAUTH2_PROXY_COOKIE_EXPIRE: 8h
+      OAUTH2_PROXY_COOKIE_REFRESH: 1h
+      OAUTH2_PROXY_REVERSE_PROXY: "true"
+      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
+      OAUTH2_PROXY_SCOPE: "read:user user:email"
+      OAUTH2_PROXY_WHITELIST_DOMAINS: ${EXE_DECK_DOMAIN}
+      OAUTH2_PROXY_PASS_ACCESS_TOKEN: "false"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
