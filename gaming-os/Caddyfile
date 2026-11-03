@@ -1,0 +1,16 @@
+{
+  email {$EXE_DECK_ACME_EMAIL}
+}
+{$EXE_DECK_DOMAIN} {
+  encode zstd gzip
+  basic_auth {
+    {$EXE_DECK_USER} {$EXE_DECK_PASSWORD_HASH}
+  }
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy no-referrer
+    X-Frame-Options DENY
+    Cache-Control "no-store"
+  }
+  reverse_proxy gaming:6080
+}
