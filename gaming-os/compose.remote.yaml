@@ -1,0 +1,31 @@
+# Optional authenticated HTTPS gateway. Requires public DNS, inbound 80/443,
+# a Caddy bcrypt password hash, and a trusted dedicated Linux host.
+services:
+  gaming:
+    ports: !reset []
+    expose:
+      - "6080"
+  gateway:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - gaming
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      EXE_DECK_DOMAIN: ${EXE_DECK_DOMAIN:?Set the public DNS hostname}
+      EXE_DECK_ACME_EMAIL: ${EXE_DECK_ACME_EMAIL:?Set ACME email}
+      EXE_DECK_USER: ${EXE_DECK_USER:?Set HTTP username}
+      EXE_DECK_PASSWORD_HASH: ${EXE_DECK_PASSWORD_HASH:?Set bcrypt hash}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+volumes:
+  caddy_data:
+  caddy_config:
