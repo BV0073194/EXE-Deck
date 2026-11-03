@@ -11,7 +11,7 @@ let starting=false;
 function loadScript(url){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=()=>reject(Error('Failed to load emulator runtime'));document.head.append(s)})}
 async function load(){if(typeof window.V86==='function')return window.V86;if(!loading)loading=loadScript(BASE+'build/libv86.js').then(()=>{if(typeof window.V86!=='function')throw Error('Emulator script loaded without V86 constructor');return window.V86}).catch(e=>{loading=null;throw e});return loading}
 async function boot({iso,screen,onStatus=()=>{},memoryMiB=128}){
- if(vm||starting)throw Error('Stop the running VM before booting another');
+ if(vm||starting)return vm;
  if(iso!==undefined&&(!(iso instanceof File)||!iso.size))throw Error('Select a valid bootable ISO file');
  if(!Number.isInteger(memoryMiB)||memoryMiB<32||memoryMiB>512)throw Error('Memory must be 32–512 MiB');
  if(!screen)throw Error('Missing guest display');
