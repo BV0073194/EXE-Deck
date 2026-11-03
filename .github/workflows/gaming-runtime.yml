@@ -13,6 +13,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Check authentication and container configuration
+        run: python3 -m unittest discover -s gaming-os -p 'test_*.py' -v
       - name: Build Linux compatibility container
         run: docker build -t exe-deck-gaming:ci gaming-os
       - name: Verify Wine is installed
