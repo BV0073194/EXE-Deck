@@ -58,3 +58,18 @@ It binds only to `127.0.0.1:47631`, prints a random bearer token at startup, and
 ### Runner discovery API
 
 The native companion now exposes authenticated `GET /v1/runners` to report locally discoverable Wine, Wine64, Steam, Winetricks, Protontricks and Vulkan/OpenGL diagnostic commands. `POST /v1/recommend` accepts JSON with a filename and the first up to 4096 file bytes as hexadecimal `headerHex`; it checks Windows PE signatures and MSI compound-file signatures and returns a **non-executing** runner recommendation. The server does not launch processes, auto-install dependencies, or report Proton or GPU support as verified. The browser frontend is not yet paired to the companion. No successful EXE/MSI execution has been tested.
+
+### Experimental local Wine execution
+
+For a **trusted** Windows program on Linux or Windows WSL with Wine already installed:
+
+```bash
+python3 companion/launch_local.py "/path/to/installer.msi" --acknowledge-unsandboxed --wait
+python3 companion/launch_local.py "/path/to/game.exe" --acknowledge-unsandboxed
+```
+
+This is a command-line launcher only; the GitHub Pages UI cannot call it. It verifies PE/EXE or MSI signatures, routes MSI to `wine msiexec /i`, command scripts to `wine cmd /c`, and other PE executables to `wine`. Each invocation gets a separate `WINEPREFIX` under `~/.exe-deck/wine-prefixes`. The launcher does **not** install Wine, Steam, Proton, DirectX, Vulkan, a Linux OS, or graphics drivers. It does not select among Proton versions or provide game compatibility guarantees.
+
+**Critical:** Wine does not isolate programs from the host user's files, processes, or network. Do not run untrusted executables. Use a genuinely isolated VM or disposable OS user before enabling remote/browser-controlled execution. WSL is not automatically a secure multi-tenant boundary. For modern GPU-accelerated games, additional native runtime, drivers, display streaming, and sandboxing are required.
+
+Run tests with `python3 -m unittest discover -s companion -p 'test_*.py'`. Tests have been added but have not been verified on the target machine.
