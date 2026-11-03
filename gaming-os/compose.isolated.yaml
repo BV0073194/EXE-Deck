@@ -1,0 +1,18 @@
+# Network segmentation for authenticated single-owner remote sessions.
+# Always combine with compose.yaml, compose.remote.yaml, compose.github.yaml,
+# and compose.github.caddy.yaml. Requires Docker Compose v2.24+.
+services:
+  gaming:
+    networks: !override
+      - session_private
+  oauth:
+    networks: !override
+      - session_private
+      - auth_frontend
+  gateway:
+    networks: !override
+      - auth_frontend
+networks:
+  auth_frontend: {}
+  session_private:
+    internal: true
