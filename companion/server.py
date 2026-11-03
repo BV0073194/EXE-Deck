@@ -12,6 +12,7 @@ import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from runners import inventory, recommend
 from urllib.parse import urlsplit
 
 MAX_BODY = 4096
@@ -53,6 +54,17 @@ class Handler(BaseHTTPRequestHandler):
         if not self.authorized():
             return self.respond(401, {"error": "Unauthorized"})
         path = urlsplit(self.path).path
+        if method == "GET" and path == "/v1/runners":
+            return self.respond(200, inventory())
+        if method == "POST" and path == "/v1/recommend":
+            try:
+                body = self.request_json()
+                if not isinstance(body, dict) or not isinstance(body.get("filename"), str) or len(body["filename"]) > 255 or not isinstance(body.get("headerHex"), str) or len(body["headerHex"]) > 8192:
+                    return self.respond(400, {"error": "Expected filename and headerHex (max 4096 bytes)"})
+                header = bytes.fromhex(body["headerHex"])
+            except (ValueError, TypeError) as e:
+                return self.respond(400, {"error": "Invalid hex header"})
+            return self.respond(200, recommend(body["filename"], header))
         if method == "GET" and path == "/v1/status":
             return self.respond(200, {"service": "exe-deck-companion", "version": 1,
                 "executionReady": False, "wineReady": False, "guestProvisioningReady": False,
