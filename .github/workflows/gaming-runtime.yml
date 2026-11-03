@@ -15,6 +15,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check authentication and container configuration
         run: python3 -m unittest discover -s gaming-os -p 'test_*.py' -v
+      - name: Validate secure deployment shell syntax
+        run: bash -n gaming-os/secure-start.sh gaming-os/host-check.sh gaming-os/game-session.sh
+      - name: Validate secure Compose overlays
+        env:
+          EXE_DECK_DOMAIN: example.com
+          EXE_DECK_ACME_EMAIL: test@example.com
+          EXE_DECK_GITHUB_CLIENT_ID: test-id
+          EXE_DECK_GITHUB_CLIENT_SECRET: test-secret
+          EXE_DECK_COOKIE_SECRET: abcdefghijklmnopqrstuvwxyz0123456789abcdef
+          EXE_DECK_GITHUB_ALLOWED_USERS: example-user
+        run: |
+          docker compose -f gaming-os/compose.yaml -f gaming-os/compose.remote.yaml -f gaming-os/compose.github.yaml -f gaming-os/compose.github.caddy.yaml -f gaming-os/compose.isolated.yaml config --quiet
       - name: Build Linux compatibility container
         run: docker build -t exe-deck-gaming:ci gaming-os
       - name: Verify Wine is installed
