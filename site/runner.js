@@ -1,5 +1,5 @@
 // Experimental x86 WebAssembly guest runner. Requires separately supplied bootable ISO.
-// v86 is a PC emulator, not Wine/Proton or a Windows 10/11 gaming GPU.
+// Each tab creates its own VM RAM and emulator. The ISO is read-only CD-ROM media.\n// No writable guest hard disk or networking is attached. This is not a security sandbox for hostile code.\n// v86 is a PC emulator, not Wine/Proton or a Windows 10/11 gaming GPU.
 (function(){
 const BASE='https://cdn.jsdelivr.net/npm/v86@0.5.462/';
 const DEFAULT_LINUX='https://i.copy.sh/linux.iso'; // Upstream v86 demo image, fetched on demand; not bundled
@@ -19,7 +19,7 @@ async function boot({iso,screen,onStatus=()=>{},memoryMiB=128}){
  const canvas=document.createElement('canvas');canvas.style.display='none';screen.append(text,canvas);
  onStatus('Starting virtual PC with '+(iso?.name||'default Linux demo image')+'…');
  try{
- vm=new V86({wasm_path:BASE+'build/v86.wasm',memory_size:memoryMiB*1048576,vga_memory_size:8*1048576,screen_container:screen,bios:{url:BASE+'bios/seabios.bin'},vga_bios:{url:BASE+'bios/vgabios.bin'},cdrom:iso?{buffer:iso}:{url:DEFAULT_LINUX},autostart:true});
+ vm=new V86({wasm_path:BASE+'build/v86.wasm',memory_size:memoryMiB*1048576,vga_memory_size:8*1048576,screen_container:screen,bios:{url:BASE+'bios/seabios.bin'},vga_bios:{url:BASE+'bios/vgabios.bin'},cdrom:iso?{buffer:iso}:{url:DEFAULT_LINUX},network_relay_url:undefined,autostart:true});
  vm.add_listener('emulator-ready',()=>onStatus('Virtual PC ready; guest boot is controlled by the selected ISO'));
  vm.add_listener('emulator-started',()=>onStatus('Virtual PC running · '+(iso?.name||'default Linux demo image')));
  return vm;
@@ -28,5 +28,5 @@ async function boot({iso,screen,onStatus=()=>{},memoryMiB=128}){
 async function stop(){if(!vm)return;const old=vm;vm=null;await old.stop();if(typeof old.destroy==='function')await old.destroy()}
 function pause(){if(!vm)throw Error('No virtual PC running');vm.stop()}
 function resume(){if(!vm)throw Error('No virtual PC running');vm.run()}
-window.EXERunner={boot,stop,pause,resume,DEFAULT_LINUX,get running(){return Boolean(vm)},get vm(){return vm}};
+window.EXERunner={boot,stop,pause,resume,DEFAULT_LINUX,get running(){return Boolean(vm)}};
 })();
