@@ -41,3 +41,16 @@ The workflow in `.github/workflows/pages.yml` deploys `site/` through GitHub Pag
 ## Implementation status (November 2026)
 
 The current milestone repairs a JavaScript syntax defect that prevented the v86 runner from initializing, prevents overlapping boot attempts, and improves disk lock cleanup. This is **not** completion of the proposed Linux/Wine/Proton game platform. Missing: a bundled and verified Linux image, automatic offline boot, real guest user provisioning, Wine/Proton and MSI runtime, guest disk bridge with safe sector I/O, graphics acceleration, per-user authentication, and security testing. No successful guest boot or game installation has been verified.
+
+## Native companion prototype
+
+A minimal Python 3 standard-library companion is now in `companion/server.py`. Run it **locally**:
+
+```bash
+python companion/server.py
+python -m unittest discover -s companion -p 'test_*.py'
+```
+
+It binds only to `127.0.0.1:47631`, prints a random bearer token at startup, and creates private `0700` session workspaces in `~/.exe-deck/sessions`. Its current authenticated API is `GET /v1/status`, `POST /v1/sessions` with `{}`, and `DELETE /v1/sessions/{uuid}`. Closing a session preserves its files.
+
+**Security boundary:** this is only an authenticated local session/workspace broker. It does not launch Linux VMs, isolate OS processes, authenticate remote users, provide root passwords, or execute untrusted software. It deliberately sends no permissive CORS headers, so the GitHub Pages frontend **cannot yet call it directly**; adding a secure, explicit pairing and browser-to-localhost transport is separate work. Never publish the bearer token or expose the service to a public interface. File modes alone do not provide isolation from processes running as the same OS user.
