@@ -27,3 +27,13 @@ No Windows 10/11 guest, Windows installer execution, MSI service, Wine API compa
 ## Deployment
 
 The workflow in `.github/workflows/pages.yml` deploys `site/` through GitHub Pages from `main`. The service worker caches app assets for offline use.
+
+## Session isolation and security boundaries
+
+- Every tab constructs a separate v86 emulator and guest RAM; the default Linux ISO is attached as **read-only CD-ROM**, with no writable guest disk attached. The default boot image is fetched from upstream and cannot be modified by guest disk writes.
+- No guest networking is intentionally configured. The browser still fetches runtime and boot assets from third-party origins.
+- Device VHD files are **not** passed to the guest VM. The separate browser file-access panel can still write to a user-approved VHD, so do not treat the entire site as read-only.
+- Web Locks coordinate selected disks between tabs **in the same browser origin**, using filenames. This is not a secure filesystem identity or a lock across browsers, apps, devices, or users.
+- Per-tab generated usernames/passwords are **UI session identifiers**, not real Linux credentials or root permissions. They do not authenticate users.
+- Browser same-origin JavaScript, extensions, compromised dependencies, and users with device access are **not** isolated by this scheme. There is no multi-user backend, authenticated tenant isolation, verified Linux image, cryptographic boot verification, or secure execution boundary for untrusted EXEs.
+- Do not run untrusted executables or treat this experimental guest as a hardened sandbox. For actual multi-user isolation, use authenticated per-user storage, pinned and integrity-verified self-hosted images, CSP, and independently sandboxed VM workers with an audited storage broker.
