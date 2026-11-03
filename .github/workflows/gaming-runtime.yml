@@ -1,0 +1,21 @@
+name: Validate gaming runtime
+on:
+  push:
+    paths:
+      - 'gaming-os/**'
+      - '.github/workflows/gaming-runtime.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Linux compatibility container
+        run: docker build -t exe-deck-gaming:ci gaming-os
+      - name: Verify Wine is installed
+        run: docker run --rm exe-deck-gaming:ci wine --version
+      - name: Verify Vulkan diagnostics are installed
+        run: docker run --rm exe-deck-gaming:ci bash -lc 'command -v vulkaninfo && command -v winetricks'
