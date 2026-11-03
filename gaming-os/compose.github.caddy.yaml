@@ -1,0 +1,6 @@
+services:
+  gateway:
+    volumes: !override
+      - ./Caddy.github:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
