@@ -38,6 +38,13 @@ class BrokerTests(unittest.TestCase):
         self.assertTrue((Path(self.temp.name) / data["id"]).is_dir())
         self.assertEqual(self.request("DELETE", "/v1/sessions/" + data["id"], "test-secret")[0], 200)
         self.assertTrue((Path(self.temp.name) / data["id"]).exists())
+    def test_runner_inventory_requires_auth(self):
+        self.assertEqual(self.request('GET', '/v1/runners')[0], 401)
+        status, data = self.request('GET', '/v1/runners', 'test-secret')
+        self.assertEqual(status, 200)
+        self.assertIn('tools', data)
+    def test_runner_recommendation_rejects_invalid_header(self):
+        self.assertEqual(self.request('POST', '/v1/recommend', 'test-secret', {'filename':'game.exe','headerHex':'ZZ'})[0], 400)
     def test_no_execution_endpoints(self):
         self.assertEqual(self.request("POST", "/v1/execute", "test-secret", {})[0], 404)
 
