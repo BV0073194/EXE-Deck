@@ -11,7 +11,7 @@ RUN dpkg --add-architecture i386 \
     bash wine wine64 wine32 winetricks cabextract p7zip-full \
     mesa-vulkan-drivers mesa-vulkan-drivers:i386 vulkan-tools \
     libvulkan1 libvulkan1:i386 mesa-utils \
-    xvfb xauth x11-utils dbus-x11 x11vnc novnc websockify \
+    xvfb xauth x11-utils dbus-x11 x11vnc novnc websockify openbox xterm \
     curl wget unzip file procps python3 \
  && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -u 10001 -s /bin/bash gamer
