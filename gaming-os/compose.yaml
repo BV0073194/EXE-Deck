@@ -1,0 +1,25 @@
+services:
+  gaming:
+    build: .
+    image: exe-deck-gaming:local
+    init: true
+    user: "10001:10001"
+    ports:
+      - "127.0.0.1:6080:6080"
+    volumes:
+      - game-data:/home/gamer
+    environment:
+      EXE_DECK_SCREEN: "1280x720x24"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    mem_limit: 8g
+    cpus: 4
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=512m
+    restart: "no"
+volumes:
+  game-data:
