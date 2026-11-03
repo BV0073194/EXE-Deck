@@ -37,3 +37,7 @@ The workflow in `.github/workflows/pages.yml` deploys `site/` through GitHub Pag
 - Per-tab generated usernames/passwords are **UI session identifiers**, not real Linux credentials or root permissions. They do not authenticate users.
 - Browser same-origin JavaScript, extensions, compromised dependencies, and users with device access are **not** isolated by this scheme. There is no multi-user backend, authenticated tenant isolation, verified Linux image, cryptographic boot verification, or secure execution boundary for untrusted EXEs.
 - Do not run untrusted executables or treat this experimental guest as a hardened sandbox. For actual multi-user isolation, use authenticated per-user storage, pinned and integrity-verified self-hosted images, CSP, and independently sandboxed VM workers with an audited storage broker.
+
+## Implementation status (November 2026)
+
+The current milestone repairs a JavaScript syntax defect that prevented the v86 runner from initializing, prevents overlapping boot attempts, and improves disk lock cleanup. This is **not** completion of the proposed Linux/Wine/Proton game platform. Missing: a bundled and verified Linux image, automatic offline boot, real guest user provisioning, Wine/Proton and MSI runtime, guest disk bridge with safe sector I/O, graphics acceleration, per-user authentication, and security testing. No successful guest boot or game installation has been verified.
