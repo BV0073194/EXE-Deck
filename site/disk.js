@@ -37,7 +37,7 @@ async function openExternalDisk(){
  const isVHDX=header==='vhdxfile';
  const info=isVHDX?{bytes:file.size,mib:Math.round(file.size/1048576*100)/100,format:'VHDX (raw container bytes)'}:{...await inspect(handle),format:'Fixed VHD'};
  const permission=await handle.requestPermission({mode:'readwrite'});
- const writable=permission==='granted';
+ const writable=permission==='granted'&&!isVHDX;
  let closed=false,stream=null;
  let changes=[];let queue=Promise.resolve();
  const serial=fn=>{const p=queue.then(fn);queue=p.catch(()=>{});return p};
@@ -45,9 +45,10 @@ async function openExternalDisk(){
  async function commit(){if(stream){await stream.close();stream=null;changes=[]}}
  return {name:handle.name,external:true,readOnly:!writable,stagedWrites:writable,...info,
   read:(offset,length)=>serial(async()=>{check(offset,length);const source=await handle.getFile();const data=new Uint8Array(await source.slice(offset,offset+length).arrayBuffer());for(const ch of changes){const start=Math.max(offset,ch.offset),end=Math.min(offset+length,ch.offset+ch.data.length);if(end>start)data.set(ch.data.subarray(start-ch.offset,end-ch.offset),start-offset)}return data}),
-  write:(offset,data)=>serial(async()=>{if(!writable)throw Error('Read-only permission');if(!(data instanceof Uint8Array))throw Error('Write data must be Uint8Array');check(offset,data.length);if(!stream)stream=await handle.createWritable({keepExistingData:true});const copy=data.slice();await stream.write({type:'write',position:offset,data:copy});changes.push({offset,data:copy});if(changes.length>128)await commit()}),
+  write:(offset,data)=>serial(async()=>{if(!writable)throw Error(isVHDX?'VHDX sector writes require a validated VHDX driver; raw writes are disabled to protect the disk':'Read-only permission');if(!(data instanceof Uint8Array))throw Error('Write data must be Uint8Array');check(offset,data.length);if(!stream)stream=await handle.createWritable({keepExistingData:true});const copy=data.slice();await stream.write({type:'write',position:offset,data:copy});changes.push({offset,data:copy});if(changes.length>128)await commit()}),
   flush:()=>serial(commit),
   close:()=>serial(async()=>{if(closed)return;await commit();closed=true})
  };
 }
-window.EXEDisk={openExternalDisk,createDisk,listDisks,removeDisk,saveDisk,attachDisk,inspect};
+async function createDeviceDisk(name,mib,progress){if(!window.showSaveFilePicker)throw Error('Direct device disk creation needs a supported desktop Chromium browser. This website cannot directly write Files-app documents on iOS.');if(!/^[a-z0-9][a-z0-9._-]{0,60}\\.vhd$/i.test(name))throw Error('Enter a .vhd filename');if(!Number.isInteger(mib)||mib<64||mib>2048)throw Error('Choose 64–2048 MiB');const handle=await showSaveFilePicker({suggestedName:name,types:[{description:'Virtual hard disk',accept:{'application/octet-stream':['.vhd']}}]});await formatVHD(handle,mib,progress);return {name:handle.name,...await inspect(handle)}}
+window.EXEDisk={createDeviceDisk,openExternalDisk,createDisk,listDisks,removeDisk,saveDisk,attachDisk,inspect};
