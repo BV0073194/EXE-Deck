@@ -13,8 +13,9 @@ async function load(){if(typeof window.V86==='function')return window.V86;if(!lo
 async function boot({iso,screen,onStatus=()=>{},memoryMiB=128}){
  if(vm||starting)return vm;
  if(iso!==undefined&&(!(iso instanceof File)||!iso.size))throw Error('Select a valid bootable ISO file');
- if(!Number.isInteger(memoryMiB)||memoryMiB<32||memoryMiB>512)throw Error('Memory must be 32–512 MiB');
+ if(!Number.isInteger(memoryMiB)||memoryMiB<32||memoryMiB>8192)throw Error('Memory must be 32–8192 MiB');
  if(!screen)throw Error('Missing guest display');
+ if(memoryMiB>=4096)onStatus('Warning: large VM RAM allocation may exceed browser/WebAssembly limits');
  starting=true;
  onStatus('Loading x86 WebAssembly emulator…');
  let V86;
